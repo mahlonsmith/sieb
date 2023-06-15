@@ -1,10 +1,13 @@
 
-FILES = sieb.nim
+FILES = src/sieb.nim
 
 default: release
 
 autobuild:
 	find . -type f -iname \*.nim | entr -c make development
+
+dependencies:
+	nimble install --depsOnly
 
 development: ${FILES}
 	# can use gdb with this...
@@ -13,13 +16,17 @@ development: ${FILES}
 debugger: ${FILES}
 	nim --debugger:on --nimcache:.cache c ${FILES}
 
-release: ${FILES}
+release:dependencies ${FILES}
 	nim -d:release -d:nimDebugDlOpen --opt:speed --parallelBuild:0 --nimcache:.cache c ${FILES}
+	mv src/sieb .
 
 docs:
 	nim doc ${FILES}
 	#nim buildIndex ${FILES}
 
 clean:
-	fossil clean -f
+	fossil clean --dotfiles -f -v
+
+clobber:
+	fossil clean -x -v
 
