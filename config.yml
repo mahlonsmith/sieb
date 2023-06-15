@@ -1,0 +1,48 @@
+#
+# Example Sieb configuration file.
+#
+
+
+# Default, no logging.  Relative to homedir.
+logfile: sieb.log
+
+## Filter message before rules
+#pre_filter:
+#  - bogofilter
+
+## Filter message after rules
+#post_filter:
+#  - bogofilter
+
+rules:
+  -
+    headers:
+      woo: yeah
+
+
+## Ordered, top down, first match wins.
+## Headers are lowercased.  Multiple matches are AND'ed.
+##
+## Delivery default is ~/Maildir, any set value is an auto-created maildir under
+## that path.
+##
+#rules:
+#  -
+#    headers:
+#      x-what: pcre-matcher
+#      poonie: pcre-matcher
+#    deliver: .whatever
+
+#  # Magic "TO" which means To: OR Cc:
+#  -
+#    headers:
+#      TO: regexp
+#    deliver: .whereever
+    
+#  # Filter message through reformail, then deliver to ~/Maildir.
+#  -
+#    headers:
+#      x-what: fuckery
+#      filter: reformail ...
+
+
