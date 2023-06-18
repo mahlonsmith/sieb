@@ -68,9 +68,7 @@ proc newMessage*( dir: Maildir ): Message =
 
     let now = getTime()
     result.dir = dir
-    echo now
-
-    # result.path = dir.path & now.seconds
+    result.path = dir.path & dir.tmp & '/' & $now.toUnixFloat()
 
 
 
