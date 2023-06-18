@@ -1,8 +1,7 @@
 # vim: set et nosta sw=4 ts=4 :
 
 import
-    std/os,
-    std/streams
+    std/os
 
 import
     lib/config,
@@ -19,15 +18,11 @@ let
     conf    = get_config( opts.config )
     default = newMaildir( home & "Maildir" )
 
+let dest = default.subDir( ".wooo" )
 
-echo repr default.newMessage
+let msg = default.newMessage
+msg.writeStdin()
+# msg.filter()
+msg.save( dest )
 
-# let input = stdin.newFileStream()
-# var buf = input.readStr( 8192 )
-# var message = buf
-# while buf != "":
-#     buf = input.readStr( 8192 )
-#     message = message & buf
-
-# echo message
 
