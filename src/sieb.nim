@@ -1,31 +1,33 @@
 # vim: set et nosta sw=4 ts=4 :
 
 import
-    std/streams,
-    yaml/serialization
+    std/os,
+    std/streams
 
-const
-    VERSION = "v0.1.0"
-
-type
-    rule = object
-        headers: seq[ tuple[ header: string, regexp: string ] ]
-        deliver {.defaultVal: "Maildir"}: string
-        filter {.defaultVal: ""}: string
-
-    # Typed configuration file layout for YAML loading.
-    Config = object
-        logfile {.defaultVal: "".}: string
-        pre_filter {.defaultVal: @[]}: seq[string]
-        post_filter {.defaultVal: @[]}: seq[string]
-        rules {.defaultVal: @[]}: seq[rule]
+import
+    lib/config,
+    lib/maildir,
+    lib/util
 
 
-var conf: Config
+if not existsEnv( "HOME" ):
+    deferral "Unable to determine HOME from environment."
 
-let s = newFileStream( "config.yml" )
-load( s, conf )
-s.close
+let
+    home    = getHomeDir()
+    opts    = parse_cmdline()
+    conf    = get_config( opts.config )
+    default = newMaildir( home & "Maildir" )
 
-echo conf
+
+echo repr default.newMessage
+
+# let input = stdin.newFileStream()
+# var buf = input.readStr( 8192 )
+# var message = buf
+# while buf != "":
+#     buf = input.readStr( 8192 )
+#     message = message & buf
+
+# echo message
 
