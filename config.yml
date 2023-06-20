@@ -7,7 +7,8 @@
 
 ## Filter message before rules
 pre_filter:
-  - bogofilter
+  - 'reformail -A "X-Sieb: Pre-filtered!"'
+#  - bogofilter
 
 ## Filter message after rules
 #post_filter:

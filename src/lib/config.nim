@@ -41,10 +41,10 @@ type
 
     # Typed configuration file layout for YAML loading.
     Config* = object
-        logfile {.defaultVal: "".}: string
-        pre_filter {.defaultVal: @[]}: seq[string]
-        post_filter {.defaultVal: @[]}: seq[string]
-        rules {.defaultVal: @[]}: seq[rule]
+        logfile* {.defaultVal: "".}: string
+        pre_filter* {.defaultVal: @[]}: seq[string]
+        post_filter* {.defaultVal: @[]}: seq[string]
+        rules* {.defaultVal: @[]}: seq[rule]
 
 
 #############################################################
