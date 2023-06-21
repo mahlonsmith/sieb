@@ -9,6 +9,10 @@ import
     lib/util
 
 
+# TODO: logfile
+# TODO: timer/performance
+# TODO: more performant debug
+
 # Without this, we got nuthin'!
 if not existsEnv( "HOME" ):
     deferral "Unable to determine HOME from environment."
@@ -25,14 +29,14 @@ var msg = default.newMessage.writeStdin
 
 # If there are "early rules", parse the message now and walk those.
 if conf.early_rules.len > 0:
-    if msg.walkRules( conf.early_rules, default ): quit( 0 )
+    if msg.evalRules( conf.early_rules, default ): quit( 0 )
 
 # Apply any configured global filtering.
 for filter in conf.filter: msg = msg.filter( filter )
 
 # Walk the rules, and if nothing hits, deliver to fallthrough.
 if conf.rules.len > 0:
-    if not msg.walkRules( conf.rules, default ): msg.save
+    if not msg.evalRules( conf.rules, default ): msg.save
 else:
     msg.save
 

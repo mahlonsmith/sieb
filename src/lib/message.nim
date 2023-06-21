@@ -113,7 +113,7 @@ proc newMessage*( dir: Maildir ): Message =
     result.path = joinPath( result.dir.tmp, result.basename )
 
     try:
-        debug "Opening new message at {result.path}".fmt
+        debug "Opening new message at:\n  {result.path}".fmt
         result.stream = openFileStream( result.path, fmWrite )
         result.path.setFilePermissions( OWNERFILEPERMS )
     except CatchableError as err:
@@ -130,8 +130,8 @@ proc save*( msg: Message, dir=msg.dir ) =
     ## maildir, but can be provided a different one.
     msg.stream.close
     let newpath = joinPath( dir.new, msg.basename )
-    debug "Delivering message to {newpath}".fmt
     msg.path.moveFile( newpath )
+    debug "Delivered message to:\n  {newpath}".fmt
     msg.dir = dir
     msg.path = newpath
 
@@ -139,8 +139,8 @@ proc save*( msg: Message, dir=msg.dir ) =
 proc delete*( msg: Message ) =
     ## Remove a message from disk.
     msg.stream.close
-    debug "Removing message at {msg.path}".fmt
     msg.path.removeFile
+    debug "Removed message at:\n  {msg.path}".fmt
     msg.path = ""
 
 
@@ -157,7 +157,7 @@ proc writeStdin*( msg: Message ): Message =
         msg.stream.write( buf )
     msg.stream.flush
     msg.stream.close
-    debug "Wrote {total} bytes from stdin".fmt
+    debug "Wrote {total} bytes".fmt
 
 
 proc filter*( orig_msg: Message, cmd: seq[string] ): Message =
@@ -249,42 +249,56 @@ proc parseHeaders*( msg: Message ) =
                 ( header, value ) = ( matches[0].toLower, matches[1] )
 
 
-# FIXME: magic TO
-proc walkRules*( msg: var Message, rules: seq[Rule], default: Maildir ): bool =
+proc evalRules*( msg: var Message, rules: seq[Rule], default: Maildir ): bool =
     ## Evaluate each rule against the Message, returning true
     ## if there was a valid match found.
-    msg.parseHeaders
     result = false
+    msg.parseHeaders
 
     for rule in rules:
         var match = false
 
+        if rule.headers.len > 0: debug "Evaluating rule..."
         block thisRule:
             for header, regexp in rule.headers:
                 let header_chk = header.toLower
-                var hmatch = false
+                var
+                    hmatch = false
+                    headerlbl = header_chk
+                    recipients: seq[ string ]
+                    values: seq[ string ]
 
-                debug " checking header \"{header}\"".fmt
-                if msg.headers.hasKey( header_chk ):
-                    for val in msg.headers[ header_chk ]:
-                        try:
-                            hmatch = val.match( regexp.re )
-                            if hmatch:
-                                debug "    match on \"{regexp}\"".fmt
-                                break # a single multi-header is sufficient
-                        except RegexError as err:
-                            debug "    invalid regexp \"{regexp}\" ({err.msg}), skipping".fmt.replace( "\n", " " )
-                            break thisRule
+                # TO checks both To: and Cc: simultaneously.
+                #
+                if header == "TO":
+                    headerlbl = "to|cc"
+                    recipients = msg.headers.getOrDefault( "to", @[] ) &
+                        msg.headers.getOrDefault( "cc", @[] )
 
-                    # Did any of the (possibly) multi-header values match?
-                    if hmatch:
-                        match = true
-                    else:
-                        debug "    no match, skipping others"
-                        break thisRule
-
+                debug " checking header \"{headerlbl}\"".fmt
+                if recipients.len > 0:
+                    values = recipients
+                elif msg.headers.hasKey( header_chk ):
+                    values = msg.headers[ header_chk ]
                 else:
                     debug "    nonexistent header, skipping others"
+                    break thisRule
+
+                for val in values:
+                    try:
+                        hmatch = val.match( regexp.re({reStudy,reIgnoreCase}) )
+                        if hmatch:
+                            debug "    match on \"{regexp}\"".fmt
+                            break # a single multi-header is sufficient
+                    except RegexError as err:
+                        debug "    invalid regexp \"{regexp}\" ({err.msg}), skipping".fmt.replace( "\n", " " )
+                        break thisRule
+
+                # Did any of the (possibly) multi-header values match?
+                if hmatch:
+                    match = true
+                else:
+                    debug "    no match for \"{regexp}\", skipping others".fmt
                     break thisRule
 
             result = match
