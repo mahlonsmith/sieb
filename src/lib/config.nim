@@ -34,17 +34,17 @@ const CONFFILES = @[
 #############################################################
 
 type
-    rule = object
-        headers {.defaultVal: initTable[string, string]()}: Table[ string, string ]
-        deliver {.defaultVal: "Maildir"}: string
-        filter {.defaultVal: ""}: string
+    Rule* = object
+        headers* {.defaultVal: initTable[string, string]()}: Table[ string, string ]
+        deliver* {.defaultVal: ""}: string
+        filter* {.defaultVal: @[]}: seq[ seq[string] ]
 
     # Typed configuration file layout for YAML loading.
     Config* = object
-        logfile* {.defaultVal: "".}: string
-        pre_filter* {.defaultVal: @[]}: seq[string]
-        post_filter* {.defaultVal: @[]}: seq[string]
-        rules* {.defaultVal: @[]}: seq[rule]
+        logfile* {.defaultVal: "".}:     string
+        filter* {.defaultVal: @[]}:      seq[ seq[string] ]
+        early_rules* {.defaultVal: @[]}: seq[Rule]
+        rules* {.defaultVal: @[]}:       seq[Rule]
 
 
 #############################################################

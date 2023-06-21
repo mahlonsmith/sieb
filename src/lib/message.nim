@@ -12,11 +12,15 @@ import
     std/os,
     std/osproc,
     std/posix,
+    std/re,
     std/streams,
     std/strformat,
+    std/strutils,
+    std/tables,
     std/times
 
 import
+    config,
     util
 
 
@@ -27,8 +31,8 @@ import
 const
     OWNERDIRPERMS  = { fpUserExec, fpUserWrite, fpUserRead }
     OWNERFILEPERMS = { fpUserWrite, fpUserRead }
-    # FILTERPROCOPTS = { poUsePath }
-    FILTERPROCOPTS = { poUsePath, poEvalCommand }
+    FILTERPROCOPTS = { poUsePath }
+    # FILTERPROCOPTS = { poUsePath, poEvalCommand }
     BUFSIZE        = 8192 # reading and writing buffer size
 
 
@@ -49,7 +53,7 @@ type Maildir* = ref object
 type Message* = ref object
     basename: string
     dir:      Maildir
-    headers:  seq[ tuple[ header: string, value: seq[string] ] ]
+    headers*: Table[ string, seq[string] ]
     path:     string
     stream:   FileStream
 
@@ -107,7 +111,6 @@ proc newMessage*( dir: Maildir ): Message =
     result.dir = dir
     result.basename = $now.toUnixFloat & '.' & $getCurrentProcessID() & '.' & $msgcount & '.' & $hostname
     result.path = joinPath( result.dir.tmp, result.basename )
-    result.headers = @[]
 
     try:
         debug "Opening new message at {result.path}".fmt
@@ -118,7 +121,7 @@ proc newMessage*( dir: Maildir ): Message =
 
 
 proc open*( msg: Message ) =
-    ## Open (or re-open) a Message file stream.
+    ## Open (or re-open) a Message file stream for reading.
     msg.stream = msg.path.openFileStream
 
 
@@ -141,16 +144,15 @@ proc delete*( msg: Message ) =
     msg.path = ""
 
 
-proc writeStdin*( msg: Message ) =
-    ## Streams stdin to the message file, returning how
-    ## many bytes were written.
+proc writeStdin*( msg: Message ): Message =
+    ## Streams stdin to the message file, returning the Message
+    ## object for chaining.
     let input = stdin.newFileStream
-    var buf   = input.readStr( BUFSIZE )
-    var total = buf.len
-    msg.stream.write( buf )
+    var total = 0
+    result    = msg
 
-    while buf != "" and buf.len == BUFSIZE:
-        buf   = input.readStr( BUFSIZE )
+    while not input.atEnd:
+        let buf = input.readStr( BUFSIZE )
         total = total + buf.len
         msg.stream.write( buf )
     msg.stream.flush
@@ -158,40 +160,36 @@ proc writeStdin*( msg: Message ) =
     debug "Wrote {total} bytes from stdin".fmt
 
 
-proc filter*( orig_msg: Message, cmd: string ): Message =
+proc filter*( orig_msg: Message, cmd: seq[string] ): Message =
     ## Filter message content through an external program,
     ## returning a new Message if successful.
+    result = orig_msg
     try:
         var buf: string
 
-        # let command = cmd.split
-        # let process = command[0].startProcess(
-        #     args    = command[1..(command.len-1)],
-        #     options = FILTERPROCOPTS
-        # )
+        let process = cmd[0].startProcess(
+            args    = cmd[1..(cmd.len-1)],
+            options = FILTERPROCOPTS
+        )
 
-        let process = cmd.startProcess( options = FILTERPROCOPTS )
+        debug "Running filter: {cmd}".fmt
+        # let process = cmd.startProcess( options = FILTERPROCOPTS )
 
         # Read from the original message, write to the filter 
         # process in chunks.
         #
         orig_msg.open
-        buf = orig_msg.stream.readStr( BUFSIZE )
-        process.inputStream.write( buf )
-        process.inputStream.flush
-        while buf != "" and buf.len == BUFSIZE:
+        while not orig_msg.stream.atEnd:
             buf = orig_msg.stream.readStr( BUFSIZE )
             process.inputStream.write( buf )
             process.inputStream.flush
 
         # Read from the filter process until EOF, send to the
         # new message in chunks.
+        #
         process.inputStream.close
         let new_msg = newMessage( orig_msg.dir )
-        buf = process.outputStream.readStr( BUFSIZE )
-        new_msg.stream.write( buf )
-        new_msg.stream.flush
-        while buf != "" and buf.len == BUFSIZE:
+        while not process.outputStream.atEnd:
             buf = process.outputStream.readStr( BUFSIZE )
             new_msg.stream.write( buf )
             new_msg.stream.flush
@@ -199,19 +197,108 @@ proc filter*( orig_msg: Message, cmd: string ): Message =
         let exitcode = process.waitForExit
         debug "Filter exited: {exitcode}".fmt
         process.close
-        orig_msg.delete
-        result = new_msg
+        if exitcode == 0:
+            new_msg.stream.close
+            orig_msg.delete
+            result = new_msg
+        else:
+            debug "Unable to filter message: non-zero exit code".fmt
 
     except OSError as err:
         debug "Unable to filter message: {err.msg}".fmt
-        result = orig_msg
 
 
 
-# FIXME: header parsing to tuples
-#  - open file
-#  - skip lines that don't match headers
-#  - unwrap multiline headers
-#  - store header, add value to seq of strings
+proc parseHeaders*( msg: Message ) =
+    ## Walk the RFC2822 headers, placing them into memory.
+    ## This 'unwraps' multiline headers, and allows for duplicate headers.
+    debug "Parsing message headers."
+    msg.headers = initTable[ string, seq[string] ]()
+    msg.open
+
+    var
+        line   = ""
+        header = ""
+        value  = ""
+
+    while msg.stream.readLine( line ):
+        if line == "": # Stop when headers are done.
+            if header != "":
+                if msg.headers.hasKey( header ):
+                    msg.headers[ header ].add( value )
+                else:
+                    msg.headers[ header ] = @[ value ]
+            break
+
+        # Fold continuation line
+        #
+        if line.startsWith( ' ' ) or line.startsWith( '\t' ):
+            line = line.replace( re"^\s+" )
+            value = value & ' ' & line
+
+        # Header start
+        #
+        else:
+            var matches: array[ 2, string ]
+            if line.match( re"^([\w\-]+):\s*(.*)", matches ):
+                if header != "":
+                    if msg.headers.hasKey( header ):
+                        msg.headers[ header ].add( value )
+                    else:
+                        msg.headers[ header ] = @[ value ]
+                ( header, value ) = ( matches[0].toLower, matches[1] )
 
 
+# FIXME: magic TO
+proc walkRules*( msg: var Message, rules: seq[Rule], default: Maildir ): bool =
+    ## Evaluate each rule against the Message, returning true
+    ## if there was a valid match found.
+    msg.parseHeaders
+    result = false
+
+    for rule in rules:
+        var match = false
+
+        block thisRule:
+            for header, regexp in rule.headers:
+                let header_chk = header.toLower
+                var hmatch = false
+
+                debug " checking header \"{header}\"".fmt
+                if msg.headers.hasKey( header_chk ):
+                    for val in msg.headers[ header_chk ]:
+                        try:
+                            hmatch = val.match( regexp.re )
+                            if hmatch:
+                                debug "    match on \"{regexp}\"".fmt
+                                break # a single multi-header is sufficient
+                        except RegexError as err:
+                            debug "    invalid regexp \"{regexp}\" ({err.msg}), skipping".fmt.replace( "\n", " " )
+                            break thisRule
+
+                    # Did any of the (possibly) multi-header values match?
+                    if hmatch:
+                        match = true
+                    else:
+                        debug "    no match, skipping others"
+                        break thisRule
+
+                else:
+                    debug "    nonexistent header, skipping others"
+                    break thisRule
+
+            result = match
+
+
+        if result:
+            debug "Rule match!"
+            for filter in rule.filter: msg = msg.filter( filter )
+
+            var deliver: Maildir
+            if rule.deliver != "":
+                deliver = default.subDir( rule.deliver )
+            else:
+                deliver = default
+
+            msg.save( deliver )
+   
