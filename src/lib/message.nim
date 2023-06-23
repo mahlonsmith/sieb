@@ -79,7 +79,7 @@ proc newMaildir*( path: string ): Maildir =
     result.tmp  = joinPath( path, "tmp" )
 
     if not dirExists( path ):
-        debug "Creating new maildir at {path}".fmt
+        "Creating new maildir at $#".debug( path )
         try:
             for p in [ result.path, result.cur, result.new, result.tmp ]:
                 p.createDir
@@ -113,7 +113,7 @@ proc newMessage*( dir: Maildir ): Message =
     result.path = joinPath( result.dir.tmp, result.basename )
 
     try:
-        debug "Opening new message at:\n  {result.path}".fmt
+        "Opening new message at:\n  $#".debug( result.path )
         result.stream = openFileStream( result.path, fmWrite )
         result.path.setFilePermissions( OWNERFILEPERMS )
     except CatchableError as err:
@@ -131,7 +131,7 @@ proc save*( msg: Message, dir=msg.dir ) =
     msg.stream.close
     let newpath = joinPath( dir.new, msg.basename )
     msg.path.moveFile( newpath )
-    debug "Delivered message to:\n  {newpath}".fmt
+    "Delivered message to:\n  $#".debug( newpath )
     msg.dir = dir
     msg.path = newpath
 
@@ -140,7 +140,7 @@ proc delete*( msg: Message ) =
     ## Remove a message from disk.
     msg.stream.close
     msg.path.removeFile
-    debug "Removed message at:\n  {msg.path}".fmt
+    "Removed message at:\n  $#".debug( msg.path )
     msg.path = ""
 
 
@@ -157,7 +157,7 @@ proc writeStdin*( msg: Message ): Message =
         msg.stream.write( buf )
     msg.stream.flush
     msg.stream.close
-    debug "Wrote {total} bytes".fmt
+    "Wrote $# bytes".debug( total )
 
 
 proc filter*( orig_msg: Message, cmd: seq[string] ): Message =
@@ -172,7 +172,7 @@ proc filter*( orig_msg: Message, cmd: seq[string] ): Message =
             options = FILTERPROCOPTS
         )
 
-        debug "Running filter: {cmd}".fmt
+        "Running filter: $#".debug( cmd )
         # let process = cmd.startProcess( options = FILTERPROCOPTS )
 
         # Read from the original message, write to the filter 
@@ -195,24 +195,24 @@ proc filter*( orig_msg: Message, cmd: seq[string] ): Message =
             new_msg.stream.flush
 
         let exitcode = process.waitForExit
-        debug "Filter exited: {exitcode}".fmt
+        "Filter exited: $#".debug( exitcode )
         process.close
         if exitcode == 0:
             new_msg.stream.close
             orig_msg.delete
             result = new_msg
         else:
-            debug "Unable to filter message: non-zero exit code".fmt
+            "Unable to filter message: non-zero exit code".debug
 
     except OSError as err:
-        debug "Unable to filter message: {err.msg}".fmt
+        "Unable to filter message: $#".debug( err.msg )
 
 
 
 proc parseHeaders*( msg: Message ) =
     ## Walk the RFC2822 headers, placing them into memory.
     ## This 'unwraps' multiline headers, and allows for duplicate headers.
-    debug "Parsing message headers."
+    let preparsed = not msg.headers.isNil
     msg.headers = initTable[ string, seq[string] ]()
     msg.open
 
@@ -248,6 +248,10 @@ proc parseHeaders*( msg: Message ) =
                         msg.headers[ header ] = @[ value ]
                 ( header, value ) = ( matches[0].toLower, matches[1] )
 
+    "Parsed message headers.".debug
+    if msg.headers.hasKey( "message-id" ):
+        "Message-ID is \"$#\"".debug( msg.headers[ "message-id" ] )
+
 
 proc evalRules*( msg: var Message, rules: seq[Rule], default: Maildir ): bool =
     ## Evaluate each rule against the Message, returning true
@@ -258,7 +262,7 @@ proc evalRules*( msg: var Message, rules: seq[Rule], default: Maildir ): bool =
     for rule in rules:
         var match = false
 
-        if rule.headers.len > 0: debug "Evaluating rule..."
+        if rule.headers.len > 0: "Evaluating rule...".debug
         block thisRule:
             for header, regexp in rule.headers:
                 let header_chk = header.toLower
@@ -275,37 +279,38 @@ proc evalRules*( msg: var Message, rules: seq[Rule], default: Maildir ): bool =
                     recipients = msg.headers.getOrDefault( "to", @[] ) &
                         msg.headers.getOrDefault( "cc", @[] )
 
-                debug " checking header \"{headerlbl}\"".fmt
+                " checking header \"$#\"".debug( headerlbl )
                 if recipients.len > 0:
                     values = recipients
                 elif msg.headers.hasKey( header_chk ):
                     values = msg.headers[ header_chk ]
                 else:
-                    debug "    nonexistent header, skipping others"
+                    "    nonexistent header, skipping others".debug
                     break thisRule
 
                 for val in values:
                     try:
                         hmatch = val.match( regexp.re({reStudy,reIgnoreCase}) )
                         if hmatch:
-                            debug "    match on \"{regexp}\"".fmt
+                            "    match on \"$#\"".debug( regexp )
                             break # a single multi-header is sufficient
                     except RegexError as err:
-                        debug "    invalid regexp \"{regexp}\" ({err.msg}), skipping".fmt.replace( "\n", " " )
+                        let errmsg = err.msg.replace( "\n", " " )
+                        "    invalid regexp \"$#\" ($#), skipping".debug( regexp, errmsg ) 
                         break thisRule
 
                 # Did any of the (possibly) multi-header values match?
                 if hmatch:
                     match = true
                 else:
-                    debug "    no match for \"{regexp}\", skipping others".fmt
+                    "    no match for \"$#\", skipping others".debug( regexp )
                     break thisRule
 
             result = match
 
 
         if result:
-            debug "Rule match!"
+            "Rule match!".debug
             for filter in rule.filter: msg = msg.filter( filter )
 
             var deliver: Maildir

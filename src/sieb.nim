@@ -5,13 +5,18 @@ import
 
 import
     lib/config,
+    lib/logging,
     lib/message,
     lib/util
 
+# /home/mahlon/repo/sieb/src/sieb.nim(30) sieb
+# /home/mahlon/.choosenim/toolchains/nim-1.6.10/lib/system/io.nim(759) open
+# Error: unhandled exception: cannot open: /home/mahlon/ [IOError]
 
-# TODO: logfile
 # TODO: timer/performance
 # TODO: more performant debug
+# TODO: generate default config?
+
 
 # Without this, we got nuthin'!
 if not existsEnv( "HOME" ):
@@ -22,6 +27,13 @@ let
     opts    = parse_cmdline()
     conf    = get_config( opts.config )
     default = newMaildir( joinPath( home, "Maildir" ) )
+
+if conf.logfile != "":
+    createLogger( conf.logfile )
+
+
+# FIXME: at exit?
+#   ... if logger not nil logger close
 
 
 # Create a new message under Maildir/tmp, and stream stdin to it.

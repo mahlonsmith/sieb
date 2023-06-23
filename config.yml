@@ -9,7 +9,7 @@ logfile: sieb.log
 early_rules:
   -
     headers:
-      TO: mahlon@(laika|ravn)
+      TO: mhlon@(laika|ravn)
       received: .*sendgrid.*
     filter:
       - [ reformail, -A, "X-Sieb: This matched." ]

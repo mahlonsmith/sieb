@@ -11,7 +11,7 @@ dependencies:
 
 development: ${FILES}
 	# can use gdb with this...
-	nim --debugInfo --assertions:on --linedir:on -d:testing -d:nimTypeNames --nimcache:.cache c ${FILES}
+	nim --verbosity:2 --debugInfo --assertions:on --linedir:on -d:debug -d:nimTypeNames --nimcache:.cache c ${FILES}
 	mv src/sieb .
 
 debugger: ${FILES}

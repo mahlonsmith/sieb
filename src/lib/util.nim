@@ -12,6 +12,9 @@ import
     std/terminal,
     std/strutils
 
+import
+   logging
+
 
 #############################################################
 # C O N S T A N T S
@@ -68,9 +71,13 @@ proc deferral*( msg: string ) =
     quit( 1 )
 
 
-proc debug*( msg: string ) =
-    ## Emit +msg+ if debug mode is enabled.
-    if defined( testing ): echo msg
+proc debug*( msg: string, args: varargs[string, `$`] ) =
+    ## Emit +msg+ if debug mode is enabled, coercing arguments into a string for
+    ## formatting.
+    if defined( debug ) or not logger.closed:
+        var str = msg % args
+        if defined( debug ): echo str
+        if not logger.closed: str.log
 
 
 proc parse_cmdline*: Opts =
@@ -84,7 +91,7 @@ proc parse_cmdline*: Opts =
     )
 
     # always set debug mode if development build.
-    result.debug = defined( testing )
+    result.debug = defined( debug )
 
     for kind, key, val in getopt():
         case kind
