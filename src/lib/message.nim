@@ -107,10 +107,11 @@ proc newMessage*( dir: Maildir ): Message =
     let now = getTime()
     var hostname = newString(256)
     discard getHostname( cstring(hostname), cint(256) )
+    hostname.setLen( cstring(hostname).len )
 
     msgcount = msgcount + 1
     result.dir = dir
-    result.basename = $now.toUnixFloat & '.' & $getCurrentProcessID() & '.' & $msgcount & '.' & $hostname
+    result.basename = $now.toUnixFloat & '.' & $getCurrentProcessID() & '.' & $msgcount & '.' & hostname
     result.path = joinPath( result.dir.tmp, result.basename )
 
     try:
@@ -254,6 +255,7 @@ proc parseHeaders*( msg: Message ) =
         if msg.headers.hasKey( "message-id" ):
             msgId = msg.headers[ "message-id" ][0]
             "Message-ID is \"$#\"".debug( msg.headers[ "message-id" ] )
+    # if defined( debug ): echo msg.headers
 
 
 proc evalRules*( msg: var Message, rules: seq[Rule], default: Maildir ): bool =
