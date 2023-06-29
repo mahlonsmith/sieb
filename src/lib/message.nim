@@ -106,7 +106,7 @@ proc newMessage*( dir: Maildir ): Message =
 
     let now = getTime()
     var hostname = newString(256)
-    discard getHostname( cstring(hostname), cint(256) )
+    discard getHostname( hostname, 256 )
     hostname.setLen( cstring(hostname).len )
 
     msgcount = msgcount + 1
