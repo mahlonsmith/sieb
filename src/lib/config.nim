@@ -11,7 +11,6 @@
 import
     std/os,
     std/streams,
-    std/strformat,
     std/tables,
     yaml/parser,
     yaml/serialization
@@ -35,13 +34,12 @@ const CONFFILES = @[
 
 type
     Rule* = object
-        headers* {.defaultVal: initTable[string, string]()}: Table[ string, string ]
+        match* {.defaultVal: initTable[string, string]()}: Table[ string, string ]
         deliver* {.defaultVal: ""}: string
         filter* {.defaultVal: @[]}: seq[ seq[string] ]
 
     # Typed configuration file layout for YAML loading.
     Config* = object
-        logfile* {.defaultVal: "".}:     string
         filter* {.defaultVal: @[]}:      seq[ seq[string] ]
         early_rules* {.defaultVal: @[]}: seq[Rule]
         rules* {.defaultVal: @[]}:       seq[Rule]
@@ -53,7 +51,7 @@ type
 
 proc parse( path: string ): Config =
     ## Return a parsed configuration from yaml.
-    debug "Using configuration at: {path}".fmt
+    "Using configuration at: $#".debug( path )
     let stream = newFileStream( path )
     try:
         stream.load( result )
@@ -61,18 +59,18 @@ proc parse( path: string ): Config =
         debug err.msg
         return Config() # return empty default, it could be "half parsed"
     except YamlConstructionError as err:
-        debug err.msg
+        err.msg.debug
         return Config()
     finally:
         stream.close
 
 
-proc get_config*( path: string ): Config =
+proc getConfig*( path: string ): Config =
     ## Choose a configuration file for parsing, or if there are
     ## none available, return an empty config.
     if path != "":
         if not path.fileExists:
-            debug "Configfile \"{path}\" unreadable, ignoring.".fmt
+            "Configfile \"$#\" unreadable, ignoring.".debug( path )
             return
         return parse( path )
 

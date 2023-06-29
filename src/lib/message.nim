@@ -58,8 +58,9 @@ type Message* = ref object
     stream:   FileStream
 
 
-# Count messages generated during a run.
-var msgcount = 0
+var
+    msgcount = 0  # Count messages generated during a run.
+    msgId    = "" # The parsed Message-ID
 
 
 #############################################################
@@ -212,7 +213,6 @@ proc filter*( orig_msg: Message, cmd: seq[string] ): Message =
 proc parseHeaders*( msg: Message ) =
     ## Walk the RFC2822 headers, placing them into memory.
     ## This 'unwraps' multiline headers, and allows for duplicate headers.
-    let preparsed = not msg.headers.isNil
     msg.headers = initTable[ string, seq[string] ]()
     msg.open
 
@@ -232,8 +232,9 @@ proc parseHeaders*( msg: Message ) =
 
         # Fold continuation line
         #
-        if line.startsWith( ' ' ) or line.startsWith( '\t' ):
-            line = line.replace( re"^\s+" )
+        let wsp = re"^\s+"
+        if line.match( wsp ):
+            line = line.replace( wsp )
             value = value & ' ' & line
 
         # Header start
@@ -248,9 +249,11 @@ proc parseHeaders*( msg: Message ) =
                         msg.headers[ header ] = @[ value ]
                 ( header, value ) = ( matches[0].toLower, matches[1] )
 
-    "Parsed message headers.".debug
-    if msg.headers.hasKey( "message-id" ):
-        "Message-ID is \"$#\"".debug( msg.headers[ "message-id" ] )
+    if msgId == "":
+        "Parsed message headers.".debug
+        if msg.headers.hasKey( "message-id" ):
+            msgId = msg.headers[ "message-id" ][0]
+            "Message-ID is \"$#\"".debug( msg.headers[ "message-id" ] )
 
 
 proc evalRules*( msg: var Message, rules: seq[Rule], default: Maildir ): bool =
@@ -262,9 +265,9 @@ proc evalRules*( msg: var Message, rules: seq[Rule], default: Maildir ): bool =
     for rule in rules:
         var match = false
 
-        if rule.headers.len > 0: "Evaluating rule...".debug
+        if rule.match.len > 0: "Evaluating rule...".debug
         block thisRule:
-            for header, regexp in rule.headers:
+            for header, regexp in rule.match:
                 let header_chk = header.toLower
                 var
                     hmatch = false
@@ -320,4 +323,5 @@ proc evalRules*( msg: var Message, rules: seq[Rule], default: Maildir ): bool =
                 deliver = default
 
             msg.save( deliver )
+            return # stop processing additional rules
    

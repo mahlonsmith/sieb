@@ -35,11 +35,20 @@ const
   -d --debug:
     Debug: Be verbose while parsing.
 
+  -g --generate:
+    Emit an example configuration file to stdout.
+
   -h --help:
     Help.  You're lookin' at it.
 
+  -l --log:
+    A file to record actions to, relative to $HOME/Maildir.
+
   -v --version:
     Display version number.
+    """
+    EXAMPLECONFIG = """
+sdfdsfsdfsdfsdfdsfdf FIXME: FIXME WJSDFJKSDFKSDF
     """
 
 #############################################################
@@ -47,8 +56,16 @@ const
 #############################################################
 
 type Opts = object
-    config*: string # The path to an explicit configuration file.
-    debug*:  bool   # Explain what's being done.
+    config*: string  # The path to an explicit configuration file.
+    debug*:  bool    # Explain what's being done.
+    logfile*: string # Log actions to disk.
+
+
+#############################################################
+# G L O B A L  E X P O R T S
+#############################################################
+
+var opts*: Opts
 
 
 #############################################################
@@ -74,24 +91,25 @@ proc deferral*( msg: string ) =
 proc debug*( msg: string, args: varargs[string, `$`] ) =
     ## Emit +msg+ if debug mode is enabled, coercing arguments into a string for
     ## formatting.
-    if defined( debug ) or not logger.closed:
+    if opts.debug or not logger.closed:
         var str = msg % args
-        if defined( debug ): echo str
+        if opts.debug: echo str
         if not logger.closed: str.log
 
 
-proc parse_cmdline*: Opts =
+proc parseCmdline*() =
     ## Populate the opts object with the user's preferences.
 
     # Config object defaults.
     #
-    result = Opts(
+    opts = Opts(
         config: "",
-        debug: false
+        debug: false,
+        logfile: ""
     )
 
     # always set debug mode if development build.
-    result.debug = defined( debug )
+    opts.debug = defined( debug )
 
     for kind, key, val in getopt():
         case kind
@@ -102,14 +120,21 @@ proc parse_cmdline*: Opts =
         of cmdLongOption, cmdShortOption:
             case key
                 of "conf", "c":
-                    result.config = val
+                    opts.config = val
 
                 of "debug", "d":
-                    result.debug = true
+                    opts.debug = true
+
+                of "generate", "g":
+                    echo EXAMPLECONFIG
+                    quit( 0 )
 
                 of "help", "h":
                     echo USAGE
                     quit( 0 )
+
+                of "log", "l":
+                    opts.logfile = val
 
                 of "version", "v":
                     echo "Sieb " & VERSION
@@ -118,5 +143,4 @@ proc parse_cmdline*: Opts =
                 else: discard
 
         of cmdEnd: assert( false ) # shouldn't reach here
-
 
