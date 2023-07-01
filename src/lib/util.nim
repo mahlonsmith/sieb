@@ -1,11 +1,12 @@
 # vim: set et nosta sw=4 ts=4 :
-#
-# Various helper functions that don't have a better landing spot.
-#
 
-#############################################################
+##
+## Various helper functions that don't have a better landing spot.
+##
+
+#------------------------------------------------------------
 # I M P O R T S
-#############################################################
+#------------------------------------------------------------
 
 import
     std/parseopt,
@@ -16,12 +17,12 @@ import
    logging
 
 
-#############################################################
+#------------------------------------------------------------
 # C O N S T A N T S
-#############################################################
+#------------------------------------------------------------
 
 const
-    VERSION = "v0.1.0"
+    VERSION = "v0.1.0" ## The current Sieb version
     USAGE = """
 ./sieb [-c] [-d] [-h] [-v]
 
@@ -114,9 +115,9 @@ const
 
     """
 
-#############################################################
+#------------------------------------------------------------
 # T Y P E S
-#############################################################
+#------------------------------------------------------------
 
 type Opts = object
     config*: string  # The path to an explicit configuration file.
@@ -124,16 +125,16 @@ type Opts = object
     logfile*: string # Log actions to disk.
 
 
-#############################################################
+#------------------------------------------------------------
 # G L O B A L  E X P O R T S
-#############################################################
+#------------------------------------------------------------
 
-var opts*: Opts
+var opts*: Opts ## Parsed command line options.
 
 
-#############################################################
+#------------------------------------------------------------
 # M E T H O D S
-#############################################################
+#------------------------------------------------------------
 
 proc hl( msg: string, fg: ForegroundColor, bright=false ): string =
     ## Quick wrapper for color formatting a string, since the 'terminal'
@@ -152,7 +153,7 @@ proc deferral*( msg: string ) =
 
 
 proc debug*( msg: string, args: varargs[string, `$`] ) =
-    ## Emit +msg+ if debug mode is enabled, coercing arguments into a string for
+    ## Emit `msg` if debug mode is enabled, coercing arguments into a string for
     ## formatting.
     if opts.debug or not logger.closed:
         var str = msg % args
@@ -161,7 +162,7 @@ proc debug*( msg: string, args: varargs[string, `$`] ) =
 
 
 proc parseCmdline*() =
-    ## Populate the opts object with the user's preferences.
+    ## Populate the global opts object with the user's preferences.
 
     # Config object defaults.
     #

@@ -1,11 +1,11 @@
 # vim: set et nosta sw=4 ts=4 :
-#
-# A global logger.  Just write stuff to disk safely.
-#
+##
+## A global logger.  Just write stuff to disk safely.
+##
 
-#############################################################
+#------------------------------------------------------------
 # I M P O R T S
-#############################################################
+#------------------------------------------------------------
 
 import
     std/math,
@@ -16,28 +16,25 @@ import
     std/times
 
 
-#############################################################
+#------------------------------------------------------------
 # T Y P E S
-#############################################################
+#------------------------------------------------------------
 
 type Logger = object
     fh: File
     start: MonoTime
 
 
-#############################################################
+#------------------------------------------------------------
 # G L O B A L  E X P O R T S
-#############################################################
+#------------------------------------------------------------
 
-var logger*: Logger
+var logger*: Logger ## The exported logger object.
 
-
-#############################################################
-# M E T H O D S
-#############################################################
 
 proc createLogger*( parentdir: string, filename: string ): void =
-    ## Get in line to open a write lock to the configured logfile at +path+.
+    ## Get in line to open a write lock to the configured logfile at
+    ## `filename` under `parentdir` directory.
     ## This will block until it can get an exclusive lock.
     let path     = joinPath( parentdir, filename )
     try:
@@ -62,12 +59,12 @@ proc close*( l: Logger ): void =
 
 
 proc closed*( l: Logger ): bool  =
-    ## Returns +false+ if the logfile has been opened.
+    ## Returns `false` if the logfile has been opened.
     return l.fh.isNil
 
 
 proc log*( msg: string ): void =
-    ### Emit a line to the logfile.
+    ## Emit a line to the logfile.
     if logger.closed: return
     logger.fh.writeLine( msg )
 

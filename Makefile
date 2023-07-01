@@ -23,12 +23,17 @@ release:dependencies ${FILES}
 	mv src/sieb .
 
 docs:
-	nim doc ${FILES}
-	mv src/htmldocs docs
+	nim doc --project --outdir:release/doc src/sieb.nim
 
 clean:
 	fossil clean --dotfiles -f -v
 
 clobber:
 	fossil clean -x -v
+
+latest: clobber docs
+	tar -C .. --exclude .f\* -zcvf ../sieb-latest.tar.gz sieb
+	mkdir release
+	mv ../sieb-latest.tar.gz release
+	fossil uv add release/sieb-latest.tar.gz
 

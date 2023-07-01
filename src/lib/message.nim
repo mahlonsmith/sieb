@@ -1,12 +1,13 @@
 # vim: set et nosta sw=4 ts=4 :
-#
-# A class that represents an individual Maildir, and a Nessage class to nanage
-# files underneath them.
-#
 
-#############################################################
+##
+## A class that represents an individual Maildir, and a Message class to nanage
+## files underneath them.
+##
+
+#------------------------------------------------------------
 # I M P O R T S
-#############################################################
+#------------------------------------------------------------
 
 import
     std/os,
@@ -24,9 +25,9 @@ import
     util
 
 
-#############################################################
+#------------------------------------------------------------
 # C O N S T A N T S
-#############################################################
+#------------------------------------------------------------
 
 const
     OWNERDIRPERMS  = { fpUserExec, fpUserWrite, fpUserRead }
@@ -36,14 +37,14 @@ const
     BUFSIZE        = 8192 # reading and writing buffer size
 
 
-#############################################################
+#------------------------------------------------------------
 # T Y P E S
-#############################################################
+#------------------------------------------------------------
 
 # A Maildir object.
 #
 type Maildir* = ref object
-    path*: string # Absolute path to the encapsualting dir
+    path*: string ## Absolute path to the encapsuating dir
     cur:  string
     new:  string
     tmp:  string
@@ -63,13 +64,12 @@ var
     msgId    = "" # The parsed Message-ID
 
 
-#############################################################
+#------------------------------------------------------------
 # M E T H O D S
-#############################################################
+#------------------------------------------------------------
 
-#------------------------------------------------------------
 # Maildir
-#------------------------------------------------------------
+#------------
 
 proc newMaildir*( path: string ): Maildir =
     ## Create and return a new Maildir object, making it on-disk if necessary.
@@ -95,9 +95,8 @@ proc subDir*( dir: Maildir, path: string ): Maildir =
     result = newMaildir( dir.path & "/" & path )
 
 
-#------------------------------------------------------------
 # Message
-#------------------------------------------------------------
+#------------
 
 proc newMessage*( dir: Maildir ): Message =
     ## Create and return a Message - an open FileStream under a specific Maildir
