@@ -148,7 +148,7 @@ proc hl( msg: string, fg: ForegroundColor, bright=false ): string =
 proc deferral*( msg: string ) =
     ## Exit with Qmail deferral code immediately.
     echo msg.replace( "\n", " - " ).hl( fgRed, bright=true )
-    quit( 1 )
+    quit( 111 )
 
 
 proc debug*( msg: string, args: varargs[string, `$`] ) =
