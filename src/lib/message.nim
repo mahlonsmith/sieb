@@ -266,8 +266,14 @@ proc evalRules*( msg: var Message, rules: seq[Rule], default: Maildir ): bool =
 
     for rule in rules:
         var match = false
+        let ruleCount = rule.match.len
 
-        if rule.match.len > 0: "Evaluating rule...".debug
+        if ruleCount > 0:
+            if rule.comment == "":
+                "Evaluating rule...".debug
+            else:
+                "Evaluating rule \"$#\"".debug( rule.comment )
+
         block thisRule:
             for header, regexp in rule.match:
                 let header_chk = header.toLower
@@ -290,7 +296,9 @@ proc evalRules*( msg: var Message, rules: seq[Rule], default: Maildir ): bool =
                 elif msg.headers.hasKey( header_chk ):
                     values = msg.headers[ header_chk ]
                 else:
-                    "    nonexistent header, skipping others".debug
+                    var m = "    nonexistent header"
+                    if ruleCount > 1: m = m & ", skipping other tests"
+                    m.debug
                     break thisRule
 
                 for val in values:
@@ -308,7 +316,9 @@ proc evalRules*( msg: var Message, rules: seq[Rule], default: Maildir ): bool =
                 if hmatch:
                     match = true
                 else:
-                    "    no match for \"$#\", skipping others".debug( regexp )
+                    var m = "    no match for \"$#\""
+                    if ruleCount > 1: m = m & ", skipping other tests"
+                    m.debug( regexp )
                     break thisRule
 
             result = match

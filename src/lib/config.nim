@@ -34,6 +34,7 @@ const CONFFILES = @[
 
 type
     Rule* = object
+        comment* {.defaultVal: ""}: string
         match* {.defaultVal: initTable[string, string]()}: Table[ string, string ]
         deliver* {.defaultVal: ""}: string
         filter* {.defaultVal: @[]}: seq[ seq[string] ]
@@ -59,6 +60,9 @@ proc parse( path: string ): Config =
         debug err.msg
         return Config() # return empty default, it could be "half parsed"
     except YamlConstructionError as err:
+        err.msg.debug
+        return Config()
+    except YamlStreamError as err:
         err.msg.debug
         return Config()
     finally:
