@@ -58,7 +58,7 @@ You can check out the current development source with Fossil via its
 
 Alternatively, you can download the latest version from:
 
-    https://code.martini.nu/fossil/sieb/uv/sieb-latest.tar.gz
+    https://code.martini.nu/fossil/sieb/uv/release/sieb-latest.tar.gz
 
 
 **NOTE**: As of Nim v0.16.4, the Nimble package manager is still at v0.13.1.
