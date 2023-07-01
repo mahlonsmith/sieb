@@ -12,6 +12,7 @@ import
     std/monotimes,
     std/os,
     std/posix,
+    std/strutils,
     std/times
 
 
@@ -39,13 +40,16 @@ proc createLogger*( parentdir: string, filename: string ): void =
     ## Get in line to open a write lock to the configured logfile at +path+.
     ## This will block until it can get an exclusive lock.
     let path     = joinPath( parentdir, filename )
-    logger       = Logger()
-    logger.fh    = path.open( fmAppend )
-    logger.start = getMonoTime()
+    try:
+        logger       = Logger()
+        logger.fh    = path.open( fmAppend )
+        logger.start = getMonoTime()
 
-    # Wait for exclusive lock.
-    discard logger.fh.getFileHandle.lockf( F_LOCK, 0 )
-    logger.fh.writeLine "\n", now().utc, " ------------------------------------------------------------------"
+        # Wait for exclusive lock.
+        discard logger.fh.getFileHandle.lockf( F_LOCK, 0 )
+        logger.fh.writeLine "\n", now().utc, " ------------------------------------------------------------------"
+    except IOError as err:
+        echo "Unable to open logfile: $#" % [ err.msg ]
 
 
 proc close*( l: Logger ): void =

@@ -48,7 +48,70 @@ const
     Display version number.
     """
     EXAMPLECONFIG = """
-sdfdsfsdfsdfsdfdsfdf FIXME: FIXME WJSDFJKSDFKSDF
+#
+# Example Sieb configuration file.
+#
+# This file performs no actions by default, edit to taste.
+#
+
+ 
+## Rules tried before global filtering is applied.
+## You can use this section to deliver before a spamfilter, for example.
+##
+# early_rules:
+#
+#   # Mail that is both from me and to me is questionable....
+#   -
+#     match:
+#       from: mahlon@martini.nu
+#       # Magic "TO" which means To: OR Cc:
+#       TO: mahlon@martini.nu
+#     filter:
+#       - [ reformail, -A, "X-Sieb: I sent mail to myself?" ]
+#     deliver: .suspicious
+#
+#  # No need to spam filter from the FreeBSD mailing list
+#  -
+#    match:
+#      list-id: .*freebsd-questions.*
+#    deliver: .freebsd
+
+
+
+## Global filtering.  All incoming mail that didn't match an "early rule" gets
+## this treatment.
+##
+# filter:
+#   - [ bogofilter, -uep ]
+
+
+
+## Normal rules, after the global filtering.
+## Multiple matches are AND'ed.  Everything is case insensitive.
+##
+## Delivery default is ~/Maildir, any set value is an auto-created maildir under
+## that path.
+##
+# rules:
+#   # More mailing lists, after filters
+#   -
+#     match:
+#       list-id: .*lists.linuxaudio.org.*
+#     deliver: .linuxaudio
+#
+#   # Bye, spam.  (Custom bogofilter header?)
+#   -
+#     match:
+#       x-spamfilter: \+
+#     deliver: .spam
+#
+#   # Just filter the message and deliver to default.
+#   -
+#     match:
+#       x-weird-example: hey, why not
+#       filter:
+#         - [ reformail, -A, "X-Sieb: Well alright then" ]
+
     """
 
 #############################################################
