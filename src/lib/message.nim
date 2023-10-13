@@ -179,21 +179,31 @@ proc filter*( orig_msg: Message, cmd: seq[string] ): Message =
         # Read from the original message, write to the filter 
         # process in chunks.
         #
-        orig_msg.open
+        "*** STARTING PIPE TO PROCESS".debug
+        var t = 0
+
+
+        # FIXME: I think I'm a victim of the kernel buffer filling up
+        # with large messages.  There are numerous posts regarding this.
+        # Might need to go lower level than "streams" with the child process.
+        #
         while not orig_msg.stream.atEnd:
             buf = orig_msg.stream.readStr( BUFSIZE )
+            t = t + BUFSIZE
             process.inputStream.write( buf )
             process.inputStream.flush
+            echo "wrote ", t
+        "*** DONE PIPING TO PROCESS".debug  # FIXME: hangs on large messages
 
         # Read from the filter process until EOF, send to the
         # new message in chunks.
         #
         process.inputStream.close
+        process.errorStream.close
         let new_msg = newMessage( orig_msg.dir )
         while not process.outputStream.atEnd:
             buf = process.outputStream.readStr( BUFSIZE )
             new_msg.stream.write( buf )
-            new_msg.stream.flush
 
         let exitcode = process.waitForExit
         "Filter exited: $#".debug( exitcode )

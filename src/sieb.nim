@@ -19,6 +19,13 @@ import
 
 
 #------------------------------------------------------------
+# C O N S T A N T S
+#------------------------------------------------------------
+
+const MAILDIR = if defined( debug ): "Maildir-Sieb-DEBUG" else: "Maildir"
+
+
+#------------------------------------------------------------
 # S E T U P
 #------------------------------------------------------------
 
@@ -31,7 +38,7 @@ parseCmdline()
 
 let
     home    = getHomeDir()
-    default = newMaildir( joinPath( home, "Maildir" ) )
+    default = newMaildir( joinPath( home, MAILDIR ) )
 
 # Open the optional log file.
 if opts.logfile != "": createLogger( default.path, opts.logfile )

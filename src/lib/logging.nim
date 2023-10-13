@@ -67,4 +67,5 @@ proc log*( msg: string ): void =
     ## Emit a line to the logfile.
     if logger.closed: return
     logger.fh.writeLine( msg )
+    logger.fh.flushFile
 

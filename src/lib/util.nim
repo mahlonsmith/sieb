@@ -17,11 +17,14 @@ import
    logging
 
 
+
 #------------------------------------------------------------
 # C O N S T A N T S
 #------------------------------------------------------------
 
 const
+    PLATFORM = staticExec( "uname -mo" )
+    COMPILEDATE = staticExec( "date '+%F'" )
     VERSION = "v0.1.0" ## The current Sieb version
     USAGE = """
 ./sieb [-c] [-d] [-h] [-v]
@@ -153,11 +156,11 @@ proc deferral*( msg: string ) =
 
 
 proc debug*( msg: string, args: varargs[string, `$`] ) =
-    ## Emit `msg` if debug mode is enabled, coercing arguments into a string for
-    ## formatting.
+    ## Emit `msg` to stderr if debug mode is enabled, coercing arguments
+    ## into a string for formatting.
     if opts.debug or not logger.closed:
         var str = msg % args
-        if opts.debug: echo str
+        if opts.debug: stderr.writeLine( str )
         if not logger.closed: str.log
 
 
@@ -201,7 +204,7 @@ proc parseCmdline*() =
                     opts.logfile = val
 
                 of "version", "v":
-                    echo "Sieb " & VERSION
+                    echo "Sieb " & VERSION & ", compiled for " & PLATFORM & " on " & COMPILEDATE
                     quit( 0 )
 
                 else: discard
