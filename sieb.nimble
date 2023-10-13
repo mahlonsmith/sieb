@@ -9,6 +9,6 @@ bin           = @["sieb"]
 
 
 # Dependencies
-requires "nim >= 1.5.0"
-requires "yaml >= 1.1"
+requires "nim >= 2.0.0"
+requires "yaml >= 2.0"
 

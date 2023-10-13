@@ -13,8 +13,7 @@ import
     std/os,
     std/streams,
     std/tables,
-    yaml/parser,
-    yaml/serialization
+    yaml/loading
 
 import util
 
@@ -57,7 +56,7 @@ proc parse( path: string ): Config =
     let stream = newFileStream( path )
     try:
         stream.load( result )
-    except YamlParserError as err:
+    except YamlLoadingError as err:
         debug err.msg
         return Config() # return empty default, it could be "half parsed"
     except YamlConstructionError as err:

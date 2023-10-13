@@ -14,6 +14,7 @@ import
     std/osproc,
     std/posix,
     std/re,
+    std/selectors,
     std/streams,
     std/strformat,
     std/strutils,
@@ -105,7 +106,7 @@ proc newMessage*( dir: Maildir ): Message =
 
     let now = getTime()
     var hostname = newString(256)
-    discard getHostname( hostname, 256 )
+    discard getHostname( cstring(hostname), 256 )
     hostname.setLen( cstring(hostname).len )
 
     msgcount = msgcount + 1
@@ -179,21 +180,14 @@ proc filter*( orig_msg: Message, cmd: seq[string] ): Message =
         # Read from the original message, write to the filter 
         # process in chunks.
         #
-        "*** STARTING PIPE TO PROCESS".debug
-        var t = 0
-
-
-        # FIXME: I think I'm a victim of the kernel buffer filling up
-        # with large messages.  There are numerous posts regarding this.
-        # Might need to go lower level than "streams" with the child process.
-        #
+        orig_msg.open
         while not orig_msg.stream.atEnd:
             buf = orig_msg.stream.readStr( BUFSIZE )
-            t = t + BUFSIZE
             process.inputStream.write( buf )
             process.inputStream.flush
-            echo "wrote ", t
-        "*** DONE PIPING TO PROCESS".debug  # FIXME: hangs on large messages
+
+            # FIXME: Need to start reading from process with
+            # the selector when it becomes readable
 
         # Read from the filter process until EOF, send to the
         # new message in chunks.
