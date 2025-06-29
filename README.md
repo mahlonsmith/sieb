@@ -52,11 +52,9 @@ to steer clear:
 Installation
 ------------
 
-You can check out the current development source with Fossil via its
-[home repo](https://code.martini.nu/fossil/sieb), or with Git at its
+You can check out the current development source with Git/Jujutsu via its
+[home repo](https://code.martini.nu/mahlon/sieb), or at its
 [project mirror](https://github.com/mahlonsmith/sieb).
-
-Alternatively, you can download the latest version [directly](https://code.martini.nu/fossil/sieb/uv/release/sieb-latest.tar.gz).
 
 With the [nim](https://nim-lang.org/) environment installed and the Sieb
 repository cloned, simply type:
@@ -146,7 +144,7 @@ compared case-insensitively.
 Rules are executed top down, first match wins.
 
     rules:
-      - 
+      -
         match:
           subject: whatever
         filter:
@@ -157,7 +155,7 @@ There is a special key called "TO", that matches both "To:" and "Cc:" headers
 simultaneously for convenience.  Keep in mind that mail addresses can include
 quotes, real names, etc.  Use greedy matching!
 
-      - 
+      -
         match:
           TO: .*freebsd-questions@FreeBSD.org.*
         deliver: .freebsd-lists
@@ -208,5 +206,4 @@ logs with garbage.  Sieb is silent by default.
 Reporting Issues
 ----------------
 
-Please report any issues [here](https://code.martini.nu/fossil/sieb/tktnew).
-
+Please report any issues [here](https://code.martini.nu/mahlon/sieb/issues).
