@@ -24,18 +24,8 @@ release:dependencies ${FILES}
 
 docs:
 	# Requires href="${url}/file?ci=tip&name=${path}&ln=${line}" modification in nimdoc.cfg
-	nim doc --git.url:https://code.martini.nu/fossil/sieb --project --outdir:release/doc src/sieb.nim
+	nim doc --git.url:https://code.martini.nu/mahlon/sieb --project --outdir:release/doc src/sieb.nim
 
 clean:
-	fossil clean --dotfiles -f -v
-
-clobber:
-	fossil clean -x -v
-
-latest: clobber docs
-	tar -C .. --exclude .f\* -zcvf ../sieb-latest.tar.gz sieb
-	mkdir -p release
-	mv ../sieb-latest.tar.gz release
-	fossil uv add release/sieb-latest.tar.gz
-	find release/doc -type f -print0 | xargs -0 -I% fossil uv add %
+	rm -f sieb
 
