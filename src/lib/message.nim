@@ -167,7 +167,9 @@ proc filter*( orig_msg: Message, cmd: seq[string] ): Message =
     ## returning a new Message if successful.
     result = orig_msg
     try:
-        var buf: string
+        var
+            buf: string
+            input_done = false
 
         let process = cmd[0].startProcess(
             args    = cmd[1..(cmd.len-1)],
@@ -175,29 +177,50 @@ proc filter*( orig_msg: Message, cmd: seq[string] ): Message =
         )
 
         "Running filter: $#".debug( cmd )
-        # let process = cmd.startProcess( options = FILTERPROCOPTS )
 
-        # Read from the original message, write to the filter 
-        # process in chunks.
-        #
+        let selector       = newSelector[int]()
+        let input_fd: int  = process.inputHandle()
+        let output_fd: int = process.outputHandle()
+        let error_fd: int  = process.errorHandle()
+
+        selector.registerHandle( output_fd, {Read}, 0 )
+        selector.registerHandle( error_fd, {Read}, 0 )
+        selector.registerHandle( input_fd, {Write}, 0 )
+
         orig_msg.open
-        while not orig_msg.stream.atEnd:
-            buf = orig_msg.stream.readStr( BUFSIZE )
-            process.inputStream.write( buf )
-            process.inputStream.flush
-
-            # FIXME: Need to start reading from process with
-            # the selector when it becomes readable
-
-        # Read from the filter process until EOF, send to the
-        # new message in chunks.
-        #
-        process.inputStream.close
-        process.errorStream.close
         let new_msg = newMessage( orig_msg.dir )
-        while not process.outputStream.atEnd:
-            buf = process.outputStream.readStr( BUFSIZE )
-            new_msg.stream.write( buf )
+
+        while true:
+            let events = selector.select( -1 )
+            if events.len == 0: continue
+
+            for ev in events:
+                let fd = ev.fd
+                if fd == output_fd and Read in ev.events:
+                    if process.outputStream.atEnd:
+                        continue
+                    buf = process.outputStream.readStr( BUFSIZE )
+                    if buf.len > 0:
+                        new_msg.stream.write( buf )
+
+                elif fd == input_fd and Write in ev.events:
+                    if orig_msg.stream.atEnd:
+                        input_done = true
+                        process.inputStream.close
+                        continue
+                    buf = orig_msg.stream.readStr( BUFSIZE )
+                    if buf.len > 0:
+                        process.inputStream.write( buf )
+                        process.inputStream.flush
+
+                elif fd == error_fd and Read in ev.events:
+                    discard process.errorStream.readStr( BUFSIZE )
+
+            if input_done and process.outputStream.atEnd:
+                break
+
+        selector.close()
+        process.errorStream.close()
 
         let exitcode = process.waitForExit
         "Filter exited: $#".debug( exitcode )
