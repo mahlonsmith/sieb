@@ -25,7 +25,7 @@ import
 const
     PLATFORM = staticExec( "uname -mo" )
     COMPILEDATE = staticExec( "date '+%F'" )
-    VERSION = "v0.1.0" ## The current Sieb version
+    VERSION = "v0.2.0" ## The current Sieb version
     USAGE = """
 ./sieb [-c] [-d] [-h] [-v]
 
